@@ -11,8 +11,8 @@ app.use(bodyParser.json());
 const db = new sqlite3.Database(':memory:');
 
 db.serialize(() => {
-  db.run("CREATE TABLE cats (id INT, name TEXT, votes INT)");
-  db.run("CREATE TABLE dogs (id INT, name TEXT, votes INT)");
+  db.run("CREATE TABLE cats (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, votes INT)");
+  db.run("CREATE TABLE dogs (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, votes INT)");
 });
 
 app.post('/cats', (req, res) => {
@@ -27,11 +27,18 @@ app.post('/cats', (req, res) => {
 });
 
 app.post('/dogs', (req, res) => {
-  
+  const name = req.body.name;
+  db.run(`INSERT INTO dogs (name, votes) VALUES ('${name}', 0)`, function(err) {
+    if (err) {
+      res.status(500).send("Erro ao inserir no banco de dados");
+    } else {
+      res.status(201).json({ id: this.lastID, name, votes: 0 });
+    }
+  });
 });
 
 app.post('/vote/:animalType/:id', (req, res) => {
- 
+  const {animalType, id} = req.params
   db.run(`UPDATE ${animalType} SET votes = votes + 1 WHERE id = ${id}`);
   res.status(200).send("Voto computado");
 });
@@ -47,7 +54,13 @@ app.get('/cats', (req, res) => {
 });
 
 app.get('/dogs', (req, res) => {
-  
+  db.all("SELECT * FROM dogs", [], (err, rows) => {
+    if (err) {
+      res.status(500).send("Erro ao consultar o banco de dados");
+    } else {
+      res.json(rows);
+    }
+  });
 });
 
 app.use((err, req, res, next) => {
