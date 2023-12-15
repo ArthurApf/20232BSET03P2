@@ -38,10 +38,27 @@ app.post('/dogs', (req, res) => {
 });
 
 app.post('/vote/:animalType/:id', (req, res) => {
-  const {animalType, id} = req.params
-  db.run(`UPDATE ${animalType} SET votes = votes + 1 WHERE id = ${id}`);
-  res.status(200).send("Voto computado");
+  const { animalType, id } = req.params;
+  const checkId = `SELECT id FROM ${animalType} WHERE id = ${id}`;
+  db.get(checkId, (err, row) => {
+    if (err) {
+      console.error(err.message);
+      return res.status(500).send("Erro interno do servidor");
+    }
+    if (!row) {
+      return res.status(404).send("O id não existe");
+    }
+    const updateQuery = `UPDATE ${animalType} SET votes = votes + 1 WHERE id = ${id}`;
+    db.run(updateQuery, (err) => {
+      if (err) {
+        console.error(err.message);
+        return res.status(500).send("Erro interno do servidor");
+      }
+      res.status(200).send("Voto computado");
+    });
+  });
 });
+
 
 app.get('/cats', (req, res) => {
   db.all("SELECT * FROM cats", [], (err, rows) => {
